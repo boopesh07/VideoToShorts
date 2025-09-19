@@ -103,11 +103,34 @@ async def log_requests_and_responses(request, call_next):
 =======
 # Add request logging middleware
 @app.middleware("http")
-async def log_requests(request, call_next):
+async def log_requests_and_responses(request, call_next):
+    import json
+    import time
+    from fastapi.responses import JSONResponse
+    from starlette.responses import Response, StreamingResponse
+
+    start_time = time.time()
+
+    # Log incoming request
     logger.info(f"=== INCOMING REQUEST ===")
     logger.info(f"Method: {request.method}")
     logger.info(f"URL: {request.url}")
+    logger.info(f"Path: {request.url.path}")
+    logger.info(f"Query Params: {dict(request.query_params)}")
     logger.info(f"Headers: {dict(request.headers)}")
+
+    # Read request body if present
+    if request.method in ["POST", "PUT", "PATCH"]:
+        try:
+            body = await request.body()
+            if body:
+                try:
+                    body_json = json.loads(body.decode())
+                    logger.info(f"Request Body: {json.dumps(body_json, indent=2)}")
+                except:
+                    logger.info(f"Request Body (raw): {body.decode()[:500]}...")
+        except:
+            logger.info("Could not read request body")
 
     response = await call_next(request)
 
