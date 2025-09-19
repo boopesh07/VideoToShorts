@@ -57,13 +57,13 @@ export default function ProgressIndicator({
 	const currentStep = statusSteps[currentStepIndex] || statusSteps[0];
 
 	return (
-		<div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg border">
+		<div className="w-full max-w-2xl mx-auto p-6 bg-zinc-900/50 rounded-lg border border-zinc-800/50 backdrop-blur-sm">
 			{/* Current Status */}
 			<div className="text-center mb-6">
-				<div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+				<div className="inline-flex items-center justify-center w-16 h-16 bg-red-500/10 rounded-full mb-4">
 					{status === "done" ? (
 						<svg
-							className="w-8 h-8 text-green-600"
+							className="w-8 h-8 text-green-400"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"

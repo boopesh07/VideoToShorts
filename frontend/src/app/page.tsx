@@ -101,44 +101,58 @@ export default function Home() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+		<div className="min-h-screen bg-zinc-950">
 			{/* Header */}
-			<header className="bg-white shadow-sm border-b">
-				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="flex items-center justify-between h-16">
-						<div className="flex items-center">
-							<h1 className="text-2xl font-bold text-gray-900">
-								Video Transcription
-							</h1>
+			<header className="sticky top-0 z-50 border-b border-zinc-800/50 bg-zinc-950/50 backdrop-blur-lg">
+				<nav className="container mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
+					<div className="group flex items-center gap-2 transition-all duration-200 hover:scale-105">
+						<div className="grid aspect-square w-5 grid-cols-2 gap-[20%] transition-transform duration-200 group-hover:rotate-6">
+							<div className="rounded-full bg-red-500"></div>
+							<div className="rounded-full bg-red-300"></div>
+							<div className="rounded-full bg-red-300"></div>
+							<div className="rounded-full bg-red-500"></div>
 						</div>
+						<span className="hidden font-mono text-sm font-medium text-zinc-100 transition-colors duration-200 group-hover:text-red-300 sm:block">
+							VideoToShorts
+						</span>
 					</div>
-				</div>
+				</nav>
 			</header>
 
 			{/* Main Content */}
-			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+			<main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				{transcriptionState.status === "idle" && (
-					<div className="space-y-6">
+					<div className="space-y-8">
+						{/* Hero Section */}
+						<div className="text-center space-y-4">
+							<h1 className="text-4xl font-bold tracking-tight text-zinc-100 sm:text-5xl">
+								AI Video Transcription
+							</h1>
+							<p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+								Upload videos or audio files to get accurate AI transcriptions with speaker identification and timestamps
+							</p>
+						</div>
+
 						{/* Input Mode Toggle */}
 						<div className="flex justify-center">
-							<div className="bg-white p-1 rounded-lg shadow-sm border">
+							<div className="bg-zinc-900/50 p-1 rounded-lg border border-zinc-800/50 backdrop-blur-sm">
 								<div className="flex space-x-1">
 									<button
 										onClick={() => setInputMode("file")}
-										className={`px-6 py-2 text-sm font-medium rounded-md transition-colors ${
+										className={`px-6 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
 											inputMode === "file"
-												? "bg-blue-600 text-white"
-												: "text-gray-600 hover:text-gray-900"
+												? "bg-red-600 text-white shadow-lg"
+												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
 										}`}
 									>
 										Upload File
 									</button>
 									<button
 										onClick={() => setInputMode("url")}
-										className={`px-6 py-2 text-sm font-medium rounded-md transition-colors ${
+										className={`px-6 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
 											inputMode === "url"
-												? "bg-blue-600 text-white"
-												: "text-gray-600 hover:text-gray-900"
+												? "bg-red-600 text-white shadow-lg"
+												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
 										}`}
 									>
 										From URL
@@ -171,20 +185,18 @@ export default function Home() {
 				)}
 
 				{transcriptionState.status === "error" && (
-					<div className="bg-red-50 border border-red-200 rounded-md p-4">
-						<div className="flex">
-							<div className="ml-3">
-								<h3 className="text-sm font-medium text-red-800">Error</h3>
-								<p className="text-sm text-red-700 mt-1">
-									{transcriptionState.error}
-								</p>
-								<button
-									onClick={resetState}
-									className="mt-2 text-sm text-red-800 hover:text-red-900"
-								>
-									Try Again
-								</button>
-							</div>
+					<div className="rounded-lg border border-red-800/50 bg-red-900/50 p-6 backdrop-blur-sm">
+						<div className="space-y-3">
+							<h3 className="text-sm font-semibold text-red-300 uppercase tracking-wider">Error</h3>
+							<p className="text-zinc-300 leading-relaxed">
+								{transcriptionState.error}
+							</p>
+							<button
+								onClick={resetState}
+								className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-red-700 hover:scale-105"
+							>
+								Try Again
+							</button>
 						</div>
 					</div>
 				)}

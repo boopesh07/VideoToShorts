@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "Video Transcription - AI-Powered Audio & Video Transcription",
+	title: "VideoToShorts - AI-Powered Video Transcription",
 	description:
 		"Upload videos or audio files to get accurate AI transcriptions with speaker identification, timestamps, summaries, and more using Gladia's powerful technology.",
 	keywords: [
@@ -21,9 +21,9 @@ export const metadata: Metadata = {
 		"audio transcription",
 		"AI transcription",
 		"speech to text",
-		"Gladia",
+		"VideoToShorts",
 	],
-	authors: [{ name: "Video Transcription App" }],
+	authors: [{ name: "VideoToShorts App" }],
 	viewport: "width=device-width, initial-scale=1",
 };
 
@@ -35,7 +35,7 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+				className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950 text-zinc-100`}
 			>
 				{children}
 			</body>

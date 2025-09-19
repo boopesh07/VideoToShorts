@@ -95,13 +95,13 @@ export default function FileUpload({
 			<div
 				className={`
           relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          transition-all duration-200 ease-in-out
+          transition-all duration-200 ease-in-out backdrop-blur-sm
           ${
 						dragActive
-							? "border-blue-500 bg-blue-50"
-							: "border-gray-300 hover:border-gray-400"
+							? "border-red-500 bg-red-900/20"
+							: "border-zinc-800/50 hover:border-zinc-700"
 					}
-          ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}
+          ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-zinc-900/30"}
         `}
 				onDragEnter={handleDrag}
 				onDragLeave={handleDrag}
@@ -119,9 +119,9 @@ export default function FileUpload({
 				/>
 
 				<div className="flex flex-col items-center justify-center space-y-4">
-					<div className="p-4 bg-blue-100 rounded-full">
+					<div className="p-4 bg-red-500/10 rounded-full">
 						<svg
-							className="w-8 h-8 text-blue-600"
+							className="w-8 h-8 text-red-400"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -137,19 +137,19 @@ export default function FileUpload({
 					</div>
 
 					<div>
-						<p className="text-lg font-medium text-gray-700">
+						<p className="text-lg font-medium text-zinc-100">
 							{dragActive
 								? "Drop your file here"
 								: "Choose a file or drag it here"}
 						</p>
-						<p className="text-sm text-gray-500 mt-1">
+						<p className="text-sm text-zinc-400 mt-1">
 							Supports audio and video files up to {maxSizeMB}MB
 						</p>
 					</div>
 
 					<button
 						type="button"
-						className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+						className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 hover:scale-105 transition-all duration-200 disabled:opacity-50 font-medium"
 						disabled={disabled}
 						onClick={(e) => {
 							e.stopPropagation();
@@ -162,8 +162,8 @@ export default function FileUpload({
 			</div>
 
 			{error && (
-				<div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
-					<p className="text-sm text-red-600">{error}</p>
+				<div className="mt-3 p-3 bg-red-900/50 border border-red-800/50 rounded-lg backdrop-blur-sm">
+					<p className="text-sm text-red-300">{error}</p>
 				</div>
 			)}
 		</div>

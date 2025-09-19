@@ -79,7 +79,7 @@ export default function UrlInput({
 				<div className="relative">
 					<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
 						<svg
-							className="h-5 w-5 text-gray-400"
+							className="h-5 w-5 text-zinc-400"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -100,11 +100,11 @@ export default function UrlInput({
 						placeholder={placeholder}
 						disabled={disabled}
 						className={`
-              block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg
-              focus:ring-2 focus:ring-blue-500 focus:border-transparent
+              block w-full pl-10 pr-12 py-3 border rounded-lg bg-zinc-900/50 backdrop-blur-sm text-zinc-100
+              focus:ring-2 focus:ring-red-500 focus:border-transparent
               disabled:opacity-50 disabled:cursor-not-allowed
-              placeholder-gray-400 text-sm
-              ${error ? "border-red-300" : "border-gray-300"}
+              placeholder-zinc-400 text-sm transition-all duration-200
+              ${error ? "border-red-800/50" : "border-zinc-800/50 hover:border-zinc-700"}
             `}
 					/>
 					<div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -112,10 +112,10 @@ export default function UrlInput({
 							type="submit"
 							disabled={disabled || !url.trim()}
 							className={`
-                px-4 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium
-                hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500
+                px-4 py-1.5 bg-red-600 text-white rounded-md text-sm font-medium
+                hover:bg-red-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500
                 disabled:opacity-50 disabled:cursor-not-allowed
-                transition-colors duration-200
+                transition-all duration-200
               `}
 						>
 							Process
@@ -124,7 +124,7 @@ export default function UrlInput({
 				</div>
 
 				{error && (
-					<div className="p-3 bg-red-50 border border-red-200 rounded-md">
+					<div className="p-3 bg-red-900/50 border border-red-800/50 rounded-lg backdrop-blur-sm">
 						<div className="flex">
 							<div className="flex-shrink-0">
 								<svg
@@ -140,18 +140,18 @@ export default function UrlInput({
 								</svg>
 							</div>
 							<div className="ml-3">
-								<p className="text-sm text-red-600">{error}</p>
+								<p className="text-sm text-red-300">{error}</p>
 							</div>
 						</div>
 					</div>
 				)}
 			</form>
 
-			<div className="mt-4 p-4 bg-gray-50 rounded-lg">
-				<h4 className="text-sm font-medium text-gray-700 mb-2">
+			<div className="mt-4 p-4 bg-zinc-900/50 border border-zinc-800/50 rounded-lg backdrop-blur-sm">
+				<h4 className="text-sm font-medium text-zinc-100 mb-2">
 					Supported URLs:
 				</h4>
-				<ul className="text-xs text-gray-600 space-y-1">
+				<ul className="text-xs text-zinc-400 space-y-1">
 					<li>• YouTube videos (youtube.com, youtu.be)</li>
 					<li>• Vimeo videos (vimeo.com)</li>
 					<li>• SoundCloud audio (soundcloud.com)</li>
