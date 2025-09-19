@@ -5,6 +5,7 @@ import FileUpload from "@/components/FileUpload";
 import UrlInput from "@/components/UrlInput";
 import ProgressIndicator from "@/components/ProgressIndicator";
 import TranscriptionResult from "@/components/TranscriptionResult";
+import ShortsGenerator from "@/components/ShortsGenerator";
 import { GladiaTranscriptionResult } from "@/lib/gladia";
 
 type TranscriptionState =
@@ -13,13 +14,27 @@ type TranscriptionState =
 	| { status: "completed"; result: GladiaTranscriptionResult }
 	| { status: "error"; error: string };
 
+type AppMode = "transcription" | "shorts";
+
 export default function Home() {
 	const [transcriptionState, setTranscriptionState] =
 		useState<TranscriptionState>({ status: "idle" });
 	const [inputMode, setInputMode] = useState<"file" | "url">("file");
+	const [appMode, setAppMode] = useState<AppMode>("transcription");
+	const [currentYoutubeUrl, setCurrentYoutubeUrl] = useState<string>("");
 
 	const resetState = () => {
 		setTranscriptionState({ status: "idle" });
+		setAppMode("transcription");
+		setCurrentYoutubeUrl("");
+	};
+
+	const handleGenerateShorts = () => {
+		setAppMode("shorts");
+	};
+
+	const handleBackToTranscription = () => {
+		setAppMode("transcription");
 	};
 
 	const handleFileSelect = async (file: File) => {
@@ -66,6 +81,11 @@ export default function Home() {
 			status: "processing",
 			message: "Processing URL...",
 		});
+
+		// Store the YouTube URL for later use in shorts generation
+		if (url.includes("youtube.com") || url.includes("youtu.be")) {
+			setCurrentYoutubeUrl(url);
+		}
 
 		try {
 			const formData = new FormData();
@@ -121,90 +141,109 @@ export default function Home() {
 
 			{/* Main Content */}
 			<main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				{transcriptionState.status === "idle" && (
-					<div className="space-y-8">
-						{/* Hero Section */}
-						<div className="text-center space-y-4">
-							<h1 className="text-4xl font-bold tracking-tight text-zinc-100 sm:text-5xl">
-								AI Video Transcription
-							</h1>
-							<p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-								Upload videos or audio files to get accurate AI transcriptions with speaker identification and timestamps
-							</p>
-						</div>
+				{appMode === "transcription" && (
+					<>
+						{transcriptionState.status === "idle" && (
+							<div className="space-y-8">
+								{/* Hero Section */}
+								<div className="text-center space-y-4">
+									<h1 className="text-4xl font-bold tracking-tight text-zinc-100 sm:text-5xl">
+										AI Video Transcription
+									</h1>
+									<p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+										Upload videos or audio files to get accurate AI
+										transcriptions with speaker identification and timestamps
+									</p>
+								</div>
 
-						{/* Input Mode Toggle */}
-						<div className="flex justify-center">
-							<div className="bg-zinc-900/50 p-1 rounded-lg border border-zinc-800/50 backdrop-blur-sm">
-								<div className="flex space-x-1">
+								{/* Input Mode Toggle */}
+								<div className="flex justify-center">
+									<div className="bg-zinc-900/50 p-1 rounded-lg border border-zinc-800/50 backdrop-blur-sm">
+										<div className="flex space-x-1">
+											<button
+												onClick={() => setInputMode("file")}
+												className={`px-6 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+													inputMode === "file"
+														? "bg-red-600 text-white shadow-lg"
+														: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
+												}`}
+											>
+												Upload File
+											</button>
+											<button
+												onClick={() => setInputMode("url")}
+												className={`px-6 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+													inputMode === "url"
+														? "bg-red-600 text-white shadow-lg"
+														: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
+												}`}
+											>
+												From URL
+											</button>
+										</div>
+									</div>
+								</div>
+
+								{/* Input Component */}
+								<div>
+									{inputMode === "file" ? (
+										<FileUpload
+											onFileSelect={handleFileSelect}
+											accept="audio/*,video/*"
+											maxSizeMB={100}
+										/>
+									) : (
+										<UrlInput onUrlSubmit={handleUrlSubmit} />
+									)}
+								</div>
+							</div>
+						)}
+
+						{transcriptionState.status === "processing" && (
+							<ProgressIndicator
+								status="processing"
+								progress={transcriptionState.progress}
+								message={transcriptionState.message}
+							/>
+						)}
+
+						{transcriptionState.status === "error" && (
+							<div className="rounded-lg border border-red-800/50 bg-red-900/50 p-6 backdrop-blur-sm">
+								<div className="space-y-3">
+									<h3 className="text-sm font-semibold text-red-300 uppercase tracking-wider">
+										Error
+									</h3>
+									<p className="text-zinc-300 leading-relaxed">
+										{transcriptionState.error}
+									</p>
 									<button
-										onClick={() => setInputMode("file")}
-										className={`px-6 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-											inputMode === "file"
-												? "bg-red-600 text-white shadow-lg"
-												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
-										}`}
+										onClick={resetState}
+										className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-red-700 hover:scale-105"
 									>
-										Upload File
-									</button>
-									<button
-										onClick={() => setInputMode("url")}
-										className={`px-6 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-											inputMode === "url"
-												? "bg-red-600 text-white shadow-lg"
-												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
-										}`}
-									>
-										From URL
+										Try Again
 									</button>
 								</div>
 							</div>
-						</div>
+						)}
 
-						{/* Input Component */}
-						<div>
-							{inputMode === "file" ? (
-								<FileUpload
-									onFileSelect={handleFileSelect}
-									accept="audio/*,video/*"
-									maxSizeMB={100}
-								/>
-							) : (
-								<UrlInput onUrlSubmit={handleUrlSubmit} />
-							)}
-						</div>
-					</div>
+						{transcriptionState.status === "completed" && (
+							<TranscriptionResult
+								result={transcriptionState.result}
+								onReset={resetState}
+								onGenerateShorts={
+									currentYoutubeUrl ? handleGenerateShorts : undefined
+								}
+								youtubeUrl={currentYoutubeUrl}
+							/>
+						)}
+					</>
 				)}
 
-				{transcriptionState.status === "processing" && (
-					<ProgressIndicator
-						status="processing"
-						progress={transcriptionState.progress}
-						message={transcriptionState.message}
-					/>
-				)}
-
-				{transcriptionState.status === "error" && (
-					<div className="rounded-lg border border-red-800/50 bg-red-900/50 p-6 backdrop-blur-sm">
-						<div className="space-y-3">
-							<h3 className="text-sm font-semibold text-red-300 uppercase tracking-wider">Error</h3>
-							<p className="text-zinc-300 leading-relaxed">
-								{transcriptionState.error}
-							</p>
-							<button
-								onClick={resetState}
-								className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-red-700 hover:scale-105"
-							>
-								Try Again
-							</button>
-						</div>
-					</div>
-				)}
-
-				{transcriptionState.status === "completed" && (
-					<TranscriptionResult
-						result={transcriptionState.result}
-						onReset={resetState}
+				{appMode === "shorts" && transcriptionState.status === "completed" && (
+					<ShortsGenerator
+						transcriptionResult={transcriptionState.result}
+						youtubeUrl={currentYoutubeUrl}
+						onBack={handleBackToTranscription}
 					/>
 				)}
 			</main>

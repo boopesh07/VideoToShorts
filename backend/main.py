@@ -1,11 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import uvicorn
 import os
 from dotenv import load_dotenv
 from apify_client import ApifyClient
+from video_processor import video_processor
 
 load_dotenv()
 
@@ -37,6 +39,28 @@ class Video(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     message: str
+
+class ShortsRequest(BaseModel):
+    youtube_url: str
+    transcript_data: Dict[str, Any]
+    custom_segments: Optional[List[Dict[str, Any]]] = None
+    max_shorts: int = 5
+
+class ShortInfo(BaseModel):
+    id: str
+    title: str
+    text: str
+    start_time: float
+    end_time: float
+    duration: float
+    filename: str
+
+class ShortsResponse(BaseModel):
+    success: bool
+    youtube_url: str
+    shorts_generated: int
+    shorts: List[ShortInfo]
+    segments_analyzed: int
 
 @app.get("/")
 async def root():
@@ -88,7 +112,7 @@ async def get_viral_videos(request: VideoRequest):
 
         if not top_videos:
             raise HTTPException(status_code=404, detail="Could not retrieve top videos. The actor might not have returned view counts.")
-        
+
         # Format the response
         response_data = [
             Video(
@@ -104,6 +128,73 @@ async def get_viral_videos(request: VideoRequest):
 
         return response_data
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate_shorts", response_model=ShortsResponse)
+async def generate_shorts(request: ShortsRequest):
+    """
+    Generate YouTube Shorts from a YouTube URL and transcript data.
+    """
+    try:
+        # Process the YouTube URL to generate shorts
+        result = video_processor.process_youtube_url_to_shorts(
+            youtube_url=request.youtube_url,
+            transcript_data=request.transcript_data,
+            custom_segments=request.custom_segments,
+            max_shorts=request.max_shorts
+        )
+
+        # Convert to response format
+        shorts_info = [
+            ShortInfo(
+                id=short['id'],
+                title=short['title'],
+                text=short['text'],
+                start_time=short['start_time'],
+                end_time=short['end_time'],
+                duration=short['duration'],
+                filename=short['filename']
+            )
+            for short in result['shorts']
+        ]
+
+        return ShortsResponse(
+            success=result['success'],
+            youtube_url=result['youtube_url'],
+            shorts_generated=result['shorts_generated'],
+            shorts=shorts_info,
+            segments_analyzed=result['segments_analyzed']
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/download_short/{filename}")
+async def download_short(filename: str):
+    """
+    Download a generated short video file.
+    """
+    try:
+        # Get the shorts directory from video processor
+        shorts_dir = video_processor.shorts_dir
+        file_path = os.path.join(shorts_dir, filename)
+
+        # Check if file exists
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Short video file not found")
+
+        # Return the file
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type="video/mp4"
+        )
+
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Short video file not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

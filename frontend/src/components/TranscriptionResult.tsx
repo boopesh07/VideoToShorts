@@ -6,11 +6,15 @@ import { GladiaTranscriptionResult } from "@/lib/gladia";
 interface TranscriptionResultProps {
 	result: GladiaTranscriptionResult;
 	onReset?: () => void;
+	onGenerateShorts?: () => void;
+	youtubeUrl?: string;
 }
 
 export default function TranscriptionResult({
 	result,
 	onReset,
+	onGenerateShorts,
+	youtubeUrl,
 }: TranscriptionResultProps) {
 	const [activeTab, setActiveTab] = useState<
 		"transcript" | "summary" | "chapters" | "entities" | "sentiment"
@@ -120,6 +124,14 @@ export default function TranscriptionResult({
 						)}
 					</div>
 					<div className="flex space-x-3">
+						{youtubeUrl && onGenerateShorts && (
+							<button
+								onClick={onGenerateShorts}
+								className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-green-700 hover:scale-105 shadow-lg"
+							>
+								🎬 Generate Shorts
+							</button>
+						)}
 						<button
 							onClick={downloadTranscript}
 							className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-red-700 hover:scale-105 shadow-lg"
@@ -163,7 +175,9 @@ export default function TranscriptionResult({
 				{activeTab === "transcript" && (segments.length > 0 || fullText) && (
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
-							<h3 className="text-lg font-semibold text-zinc-100">Transcript</h3>
+							<h3 className="text-lg font-semibold text-zinc-100">
+								Transcript
+							</h3>
 							<label className="flex items-center space-x-2 text-sm">
 								<input
 									type="checkbox"
@@ -194,13 +208,17 @@ export default function TranscriptionResult({
 												)}
 											</div>
 										</div>
-										<p className="text-zinc-200 leading-relaxed">{segment.text}</p>
+										<p className="text-zinc-200 leading-relaxed">
+											{segment.text}
+										</p>
 									</div>
 								))}
 							</div>
 						) : (
 							<div className="p-4 bg-zinc-800/50 rounded-lg">
-								<p className="text-zinc-200 whitespace-pre-wrap leading-relaxed">{fullText}</p>
+								<p className="text-zinc-200 whitespace-pre-wrap leading-relaxed">
+									{fullText}
+								</p>
 								<button
 									onClick={() => copyToClipboard(fullText)}
 									className="mt-3 text-red-400 text-sm hover:text-red-300 transition-colors duration-200"
@@ -234,14 +252,21 @@ export default function TranscriptionResult({
 						<h3 className="text-lg font-semibold text-zinc-100">Chapters</h3>
 						<div className="space-y-3">
 							{chapters.map((chapter, index) => (
-								<div key={index} className="p-4 bg-zinc-800/50 rounded-lg hover:bg-zinc-800/70 transition-colors duration-200">
+								<div
+									key={index}
+									className="p-4 bg-zinc-800/50 rounded-lg hover:bg-zinc-800/70 transition-colors duration-200"
+								>
 									<div className="flex items-center justify-between mb-2">
-										<h4 className="font-medium text-zinc-100">{chapter.headline}</h4>
+										<h4 className="font-medium text-zinc-100">
+											{chapter.headline}
+										</h4>
 										<span className="text-sm text-zinc-400 font-mono bg-zinc-900/50 px-2 py-1 rounded">
 											{formatTime(chapter.start)}-{formatTime(chapter.end)}
 										</span>
 									</div>
-									<p className="text-zinc-300 text-sm leading-relaxed">{chapter.summary}</p>
+									<p className="text-zinc-300 text-sm leading-relaxed">
+										{chapter.summary}
+									</p>
 								</div>
 							))}
 						</div>
@@ -251,12 +276,19 @@ export default function TranscriptionResult({
 				{/* Entities Tab */}
 				{activeTab === "entities" && entities.length > 0 && (
 					<div className="space-y-4">
-						<h3 className="text-lg font-semibold text-zinc-100">Named Entities</h3>
+						<h3 className="text-lg font-semibold text-zinc-100">
+							Named Entities
+						</h3>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 							{entities.map((entity, index) => (
-								<div key={index} className="p-4 bg-zinc-800/50 rounded-lg hover:bg-zinc-800/70 transition-colors duration-200">
+								<div
+									key={index}
+									className="p-4 bg-zinc-800/50 rounded-lg hover:bg-zinc-800/70 transition-colors duration-200"
+								>
 									<div className="flex items-center justify-between">
-										<span className="font-medium text-zinc-200">{entity.entity}</span>
+										<span className="font-medium text-zinc-200">
+											{entity.entity}
+										</span>
 										<span className="text-xs bg-red-600/20 text-red-300 px-2 py-1 rounded-md font-medium">
 											{entity.category}
 										</span>
@@ -270,10 +302,15 @@ export default function TranscriptionResult({
 				{/* Sentiment Tab */}
 				{activeTab === "sentiment" && sentimentResults.length > 0 && (
 					<div className="space-y-4">
-						<h3 className="text-lg font-semibold text-zinc-100">Sentiment Analysis</h3>
+						<h3 className="text-lg font-semibold text-zinc-100">
+							Sentiment Analysis
+						</h3>
 						<div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
 							{sentimentResults.map((result, index) => (
-								<div key={index} className="p-4 bg-zinc-800/50 rounded-lg hover:bg-zinc-800/70 transition-colors duration-200">
+								<div
+									key={index}
+									className="p-4 bg-zinc-800/50 rounded-lg hover:bg-zinc-800/70 transition-colors duration-200"
+								>
 									<div className="flex items-center justify-between mb-2">
 										<span
 											className={`text-sm px-3 py-1 rounded-full font-medium ${
@@ -290,7 +327,9 @@ export default function TranscriptionResult({
 											{formatTime(result.start)}-{formatTime(result.end)}
 										</span>
 									</div>
-									<p className="text-sm text-zinc-300 leading-relaxed">{result.segment}</p>
+									<p className="text-sm text-zinc-300 leading-relaxed">
+										{result.segment}
+									</p>
 								</div>
 							))}
 						</div>

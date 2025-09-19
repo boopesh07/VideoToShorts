@@ -3,3 +3,4 @@ uvicorn[standard]
 python-multipart
 apify-client
 python-dotenv
+yt-dlp
