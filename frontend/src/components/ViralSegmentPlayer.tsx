@@ -574,6 +574,23 @@ export default function ViralSegmentPlayer({ segmentData, onPlayAgain }: ViralSe
     setDownloadProgress('Preparing download...');
 
     try {
+      // First, test the connection
+      setDownloadProgress('Testing backend connection...');
+      console.log('Testing backend connection...');
+
+      const testResponse = await fetch('http://localhost:8080/api/test', {
+        method: 'GET',
+      });
+
+      console.log('Test response status:', testResponse.status);
+
+      if (!testResponse.ok) {
+        throw new Error(`Backend connection failed: ${testResponse.status}`);
+      }
+
+      const testData = await testResponse.json();
+      console.log('Backend connection successful:', testData);
+
       // Create segments array with the current segment data
       const segments = [
         {
@@ -590,7 +607,32 @@ export default function ViralSegmentPlayer({ segmentData, onPlayAgain }: ViralSe
         target_duration: extracted_segment.duration
       };
 
-      setDownloadProgress('Downloading video segments...');
+      console.log('Request data:', requestData);
+
+      // First test with the test endpoint
+      setDownloadProgress('Testing download endpoint...');
+
+      const testDownloadResponse = await fetch('http://localhost:8080/api/test-download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      console.log('Test download response status:', testDownloadResponse.status);
+
+      if (!testDownloadResponse.ok) {
+        const errorData = await testDownloadResponse.text();
+        console.error('Test download failed:', errorData);
+        throw new Error(`Test download failed: ${testDownloadResponse.status} - ${errorData}`);
+      }
+
+      const testDownloadData = await testDownloadResponse.json();
+      console.log('Test download successful:', testDownloadData);
+
+      // Now try the actual download
+      setDownloadProgress('Starting video processing...');
 
       const response = await fetch('http://localhost:8080/process-video-segments-direct', {
         method: 'POST',
@@ -600,12 +642,16 @@ export default function ViralSegmentPlayer({ segmentData, onPlayAgain }: ViralSe
         body: JSON.stringify(requestData),
       });
 
+      console.log('Actual download response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.text();
+        console.error('Download failed:', errorData);
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
       }
 
       const result = await response.json();
+      console.log('Download result:', result);
 
       if (result.success && result.video_file_path) {
         setDownloadProgress('Processing complete! Starting download...');

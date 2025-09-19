@@ -6,10 +6,13 @@ from pydantic import BaseModel
 import uvicorn
 import os
 import logging
+<<<<<<< HEAD
 import json
 import time
 import asyncio
 import random
+=======
+>>>>>>> 5d1e739 (updates)
 from dotenv import load_dotenv
 from apify_client import ApifyClient
 from video_processing import process_transcript_to_viral_script
@@ -31,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="VideoToShorts Backend", version="1.0.0")
 
+<<<<<<< HEAD
 # Add request and response logging middleware
 @app.middleware("http")
 async def log_requests_and_responses(request, call_next):
@@ -96,6 +100,19 @@ async def log_requests_and_responses(request, call_next):
             media_type=response.media_type
         )
 
+=======
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logger.info(f"=== INCOMING REQUEST ===")
+    logger.info(f"Method: {request.method}")
+    logger.info(f"URL: {request.url}")
+    logger.info(f"Headers: {dict(request.headers)}")
+
+    response = await call_next(request)
+
+    logger.info(f"Response status: {response.status_code}")
+>>>>>>> 5d1e739 (updates)
     logger.info(f"=== REQUEST COMPLETED ===")
 
     return response
@@ -555,6 +572,7 @@ async def test_download_endpoint(request: DirectProcessVideoRequest):
             "error": str(e)
         }
 
+<<<<<<< HEAD
 @app.post("/minimax/chat", response_model=MinimaxResponse)
 async def minimax_chat_completion(request: MinimaxRequest):
     """
@@ -751,6 +769,8 @@ async def minimax_list_models():
     
     return models
 
+=======
+>>>>>>> 5d1e739 (updates)
 @app.on_event("startup")
 async def startup_event():
     logger.info("=== VIDEOTOSHORTS BACKEND STARTING UP ===")
@@ -758,10 +778,13 @@ async def startup_event():
     logger.info(f"Environment variables:")
     logger.info(f"  GEMINI_API_KEY: {'Set' if os.getenv('GEMINI_API_KEY') else 'Not set'}")
     logger.info(f"  APIFY_TOKEN: {'Set' if os.getenv('APIFY_TOKEN') else 'Not set'}")
+<<<<<<< HEAD
     logger.info("=== Minimax API endpoints available ===")
     logger.info("  POST /minimax/chat - Chat completions")
     logger.info("  POST /minimax/video-analysis - Video content analysis") 
     logger.info("  GET /minimax/models - List available models")
+=======
+>>>>>>> 5d1e739 (updates)
     logger.info("=== STARTUP COMPLETE ===")
 
 if __name__ == "__main__":
