@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uvicorn
 import os
+import logging
 from dotenv import load_dotenv
 from apify_client import ApifyClient
 from video_processing import process_transcript_to_viral_script
@@ -11,15 +12,43 @@ from video_downloader import VideoDownloader, download_and_stitch_segments, get_
 
 load_dotenv()
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Console output
+        logging.FileHandler('backend.log')  # File output
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="VideoToShorts Backend", version="1.0.0")
+
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logger.info(f"=== INCOMING REQUEST ===")
+    logger.info(f"Method: {request.method}")
+    logger.info(f"URL: {request.url}")
+    logger.info(f"Headers: {dict(request.headers)}")
+
+    response = await call_next(request)
+
+    logger.info(f"Response status: {response.status_code}")
+    logger.info(f"=== REQUEST COMPLETED ===")
+
+    return response
 
 # Configure CORS to allow frontend connections
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Next.js default port
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Next.js default port
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Create videos directory if it doesn't exist
@@ -334,27 +363,49 @@ async def process_video_segments_direct(request: DirectProcessVideoRequest):
     This endpoint takes a video URL and predefined segments, downloads them using yt-dlp,
     and stitches them together into a single video file.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"=== STARTING VIDEO PROCESSING ===")
+    logger.info(f"Request received: video_url={request.video_url}")
+    logger.info(f"Segments: {request.segments}")
+    logger.info(f"Target duration: {request.target_duration}")
+
     try:
         # Validate the request
         if not request.video_url:
+            logger.error("video_url is missing from request")
             raise HTTPException(status_code=400, detail="video_url is required")
         if not request.segments:
+            logger.error("segments are missing from request")
             raise HTTPException(status_code=400, detail="segments are required")
+
+        logger.info(f"Request validation passed")
 
         # Use the segments directly
         segments_to_download = request.segments
+        logger.info(f"Processing {len(segments_to_download)} segments")
 
         # Download and stitch segments
-        processing_result = download_and_stitch_segments(request.video_url, segments_to_download, videos_dir)
+        logger.info("Starting video download and processing...")
+        from video_downloader import download_full_video_and_trim_segments
+        processing_result = download_full_video_and_trim_segments(request.video_url, segments_to_download, videos_dir)
+
+        logger.info(f"Processing result: {processing_result}")
 
         if not processing_result["success"]:
+            logger.error(f"Video processing failed: {processing_result.get('error', 'Unknown error')}")
             raise HTTPException(status_code=500, detail=processing_result["error"])
 
         # Generate URL for the video file
         output_filename = os.path.basename(processing_result["output_file"])
         video_url = f"/videos/{output_filename}"
 
-        return ProcessVideoResponse(
+        logger.info(f"Video processing completed successfully")
+        logger.info(f"Output file: {processing_result['output_file']}")
+        logger.info(f"Video URL: {video_url}")
+
+        response_data = ProcessVideoResponse(
             success=True,
             video_file_path=video_url,
             segments_info={
@@ -369,9 +420,15 @@ async def process_video_segments_direct(request: DirectProcessVideoRequest):
             }
         )
 
-    except HTTPException:
+        logger.info(f"=== VIDEO PROCESSING COMPLETED SUCCESSFULLY ===")
+        return response_data
+
+    except HTTPException as he:
+        logger.error(f"HTTP Exception: {he.detail}")
         raise
     except Exception as e:
+        logger.error(f"Unexpected error in video processing: {str(e)}")
+        logger.exception("Full traceback:")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/video-info/{video_id}")
@@ -393,6 +450,7 @@ async def get_video_info(video_id: str):
 
 @app.get("/api/test")
 async def test_endpoint():
+    logger.info("Test endpoint called")
     return {
         "success": True,
         "message": "Frontend-Backend connection successful!",
@@ -402,5 +460,38 @@ async def test_endpoint():
         }
     }
 
+@app.post("/api/test-download")
+async def test_download_endpoint(request: DirectProcessVideoRequest):
+    """Simple test endpoint for download functionality"""
+    logger.info("=== TEST DOWNLOAD ENDPOINT CALLED ===")
+    logger.info(f"Received data: {request}")
+
+    try:
+        return {
+            "success": True,
+            "message": "Test download endpoint working!",
+            "received_data": {
+                "video_url": request.video_url,
+                "segments_count": len(request.segments),
+                "segments": request.segments
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error in test endpoint: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("=== VIDEOTOSHORTS BACKEND STARTING UP ===")
+    logger.info(f"Videos directory: {videos_dir}")
+    logger.info(f"Environment variables:")
+    logger.info(f"  GEMINI_API_KEY: {'Set' if os.getenv('GEMINI_API_KEY') else 'Not set'}")
+    logger.info(f"  APIFY_TOKEN: {'Set' if os.getenv('APIFY_TOKEN') else 'Not set'}")
+    logger.info("=== STARTUP COMPLETE ===")
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    logger.info("Starting VideoToShorts backend server...")
+    uvicorn.run(app, host="0.0.0.0", port=8080, log_level="info")

@@ -7,6 +7,7 @@ import os
 import subprocess
 import tempfile
 import shutil
+import time
 from typing import List, Dict, Any, Optional, Tuple
 import logging
 from pathlib import Path
@@ -243,6 +244,94 @@ class VideoDownloader:
             logger.error(f"Failed to get video info: {e}")
             return {"error": str(e)}
 
+    def download_full_video(self, video_url: str) -> str:
+        """
+        Download the complete video using yt-dlp
+
+        Args:
+            video_url: URL of the video to download
+
+        Returns:
+            Path to the downloaded video file
+        """
+        try:
+            logger.info(f"Downloading full video from: {video_url}")
+
+            # Output template for the full video
+            output_template = os.path.join(
+                self.downloads_dir,
+                "full_video_%(title)s.%(ext)s"
+            )
+
+            # yt-dlp command to download full video
+            cmd = [
+                "yt-dlp",
+                "--format", "best[height<=720]",  # Limit to 720p for faster processing
+                "--output", output_template,
+                "--no-warnings",
+                video_url
+            ]
+
+            logger.info(f"Running command: {' '.join(cmd)}")
+
+            # Execute download
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            if result.returncode == 0:
+                # Find the downloaded file
+                video_files = list(Path(self.downloads_dir).glob("full_video_*"))
+                if video_files:
+                    downloaded_file = str(video_files[0])
+                    logger.info(f"Successfully downloaded full video: {downloaded_file}")
+                    return downloaded_file
+                else:
+                    raise RuntimeError("Could not find downloaded video file")
+            else:
+                logger.error(f"yt-dlp stderr: {result.stderr}")
+                raise RuntimeError(f"Failed to download video: {result.stderr}")
+
+        except Exception as e:
+            logger.error(f"Error downloading full video: {e}")
+            raise RuntimeError(f"Failed to download full video: {e}")
+
+    def trim_video_segment(self, video_path: str, start_time: float, end_time: float, output_filename: str) -> str:
+        """
+        Trim a segment from a video file using ffmpeg
+
+        Args:
+            video_path: Path to the source video file
+            start_time: Start time in seconds
+            end_time: End time in seconds
+            output_filename: Name for the output segment file
+
+        Returns:
+            Path to the trimmed segment file
+        """
+        try:
+            output_path = os.path.join(self.segments_dir, output_filename)
+            duration = end_time - start_time
+
+            logger.info(f"Trimming segment from {start_time}s to {end_time}s (duration: {duration}s)")
+
+            # Use ffmpeg to trim the segment
+            (
+                ffmpeg
+                .input(video_path, ss=start_time, t=duration)
+                .output(output_path, c='copy')  # Copy streams without re-encoding for speed
+                .overwrite_output()
+                .run(quiet=True)
+            )
+
+            if os.path.exists(output_path):
+                logger.info(f"Successfully trimmed segment: {output_path}")
+                return output_path
+            else:
+                raise RuntimeError(f"Output file was not created: {output_path}")
+
+        except Exception as e:
+            logger.error(f"Error trimming segment: {e}")
+            return None
+
     def cleanup(self):
         """Clean up temporary files and directories"""
         try:
@@ -284,6 +373,99 @@ def get_video_information(video_url: str) -> Dict[str, Any]:
         return downloader.get_video_info(video_url)
     finally:
         downloader.cleanup()
+
+def download_full_video_and_trim_segments(video_url: str, segments: List[Dict[str, Any]], output_dir: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Download full video then trim segments locally using ffmpeg
+
+    Args:
+        video_url: URL of the source video
+        segments: List of segments with start_time and end_time
+        output_dir: Directory to save the final video
+
+    Returns:
+        Processing result dictionary
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"=== STARTING FULL VIDEO DOWNLOAD AND TRIM ===")
+    logger.info(f"Video URL: {video_url}")
+    logger.info(f"Segments to process: {len(segments)}")
+    logger.info(f"Output directory: {output_dir}")
+
+    with VideoDownloader(output_dir=output_dir) as downloader:
+        try:
+            # Step 1: Download the full video
+            logger.info("Step 1: Downloading full video...")
+            full_video_path = downloader.download_full_video(video_url)
+            logger.info(f"Full video downloaded to: {full_video_path}")
+
+            # Step 2: Trim segments from the full video
+            logger.info("Step 2: Trimming segments...")
+            segment_files = []
+
+            for i, segment in enumerate(segments):
+                start_time = segment.get('start_time', 0)
+                end_time = segment.get('end_time', 30)
+
+                logger.info(f"Trimming segment {i+1}: {start_time}s - {end_time}s")
+                segment_file = downloader.trim_video_segment(
+                    full_video_path,
+                    start_time,
+                    end_time,
+                    f"segment_{i+1:02d}.mp4"
+                )
+
+                if segment_file:
+                    segment_files.append(segment_file)
+                    logger.info(f"Segment {i+1} trimmed successfully: {segment_file}")
+                else:
+                    logger.error(f"Failed to trim segment {i+1}")
+
+            if not segment_files:
+                raise RuntimeError("No segments were successfully trimmed")
+
+            # Step 3: Stitch segments together if multiple, or copy single segment to output dir
+            logger.info("Step 3: Finalizing output...")
+            if len(segment_files) == 1:
+                # Single segment, copy to output directory with proper name
+                output_filename = f"viral_segment_{int(time.time())}.mp4"
+                output_file = os.path.join(downloader.output_dir, output_filename)
+                shutil.copy2(segment_files[0], output_file)
+                logger.info(f"Single segment copied to final output: {output_file}")
+            else:
+                # Multiple segments, stitch together
+                output_file = downloader.stitch_segments(segment_files)
+                logger.info(f"Multiple segments stitched together: {output_file}")
+
+            # Get file info
+            file_size = os.path.getsize(output_file)
+
+            result = {
+                "success": True,
+                "output_file": output_file,
+                "segments_downloaded": len(segment_files),
+                "segment_files": segment_files,
+                "file_size_bytes": file_size,
+                "file_size_mb": round(file_size / (1024 * 1024), 2),
+                "full_video_path": full_video_path,
+                "temp_directory": downloader.temp_dir
+            }
+
+            logger.info(f"=== PROCESSING COMPLETED SUCCESSFULLY ===")
+            logger.info(f"Final output: {output_file}")
+            logger.info(f"File size: {result['file_size_mb']} MB")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error in download_full_video_and_trim_segments: {e}")
+            logger.exception("Full traceback:")
+            return {
+                "success": False,
+                "error": str(e),
+                "temp_directory": downloader.temp_dir if 'downloader' in locals() else None
+            }
 
 if __name__ == "__main__":
     # Test the downloader
