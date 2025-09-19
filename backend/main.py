@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import List, Dict, Any
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -29,6 +30,9 @@ class Video(BaseModel):
     caption: str
     url: str
     views: int
+    video_url: str
+    comment_count: int
+    subtitles: List[Dict[str, Any]]
 
 class HealthResponse(BaseModel):
     status: str
@@ -58,6 +62,7 @@ async def get_viral_videos(request: VideoRequest):
                 "resultsPerPage": 50, # Fetch more to ensure we get enough videos with view counts
                 "shouldDownloadVideos": False,
                 "shouldDownloadCovers": False,
+                "shouldDownloadSubtitles": True,
             }
         )
 
@@ -78,20 +83,21 @@ async def get_viral_videos(request: VideoRequest):
             reverse=True
         )
 
-        # Get the top 5 videos
+        # Get the top 3 videos
         top_videos = sorted_videos[:3]
 
         if not top_videos:
             raise HTTPException(status_code=404, detail="Could not retrieve top videos. The actor might not have returned view counts.")
-
+        
         # Format the response
         response_data = [
             Video(
                 caption=video.get("text", ""),
                 url=video.get("webVideoUrl", ""),
                 views=video.get("playCount", 0),
-                video_url = video.get("webVideoUrl", "")
-                comment_count = video.get("commentCount", 0)
+                video_url=video.get("webVideoUrl", ""),
+                comment_count=video.get("commentCount", 0),
+                subtitles=video.get("videoMeta", {}).get("subtitleLinks", [])
             )
             for video in top_videos
         ]
