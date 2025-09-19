@@ -640,10 +640,6 @@ async def minimax_video_analysis(video_data: dict):
     
     This endpoint simulates video content analysis capabilities that Minimax might offer.
     """
-    import asyncio
-    import random
-    import time
-    
     logger.info(f"=== MINIMAX VIDEO ANALYSIS ===")
     logger.info(f"Video analysis request received")
     
