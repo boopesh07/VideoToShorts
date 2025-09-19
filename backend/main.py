@@ -1,10 +1,15 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
 import os
 import logging
+import json
+import time
+import asyncio
+import random
 from dotenv import load_dotenv
 from apify_client import ApifyClient
 from video_processing import process_transcript_to_viral_script
@@ -26,17 +31,71 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="VideoToShorts Backend", version="1.0.0")
 
-# Add request logging middleware
+# Add request and response logging middleware
 @app.middleware("http")
-async def log_requests(request, call_next):
+async def log_requests_and_responses(request, call_next):
+    import json
+    import time
+    from fastapi.responses import JSONResponse
+    from starlette.responses import Response, StreamingResponse
+
+    start_time = time.time()
+
+    # Log incoming request
     logger.info(f"=== INCOMING REQUEST ===")
     logger.info(f"Method: {request.method}")
     logger.info(f"URL: {request.url}")
+    logger.info(f"Path: {request.url.path}")
+    logger.info(f"Query Params: {dict(request.query_params)}")
     logger.info(f"Headers: {dict(request.headers)}")
 
-    response = await call_next(request)
+    # Read request body if present
+    if request.method in ["POST", "PUT", "PATCH"]:
+        try:
+            body = await request.body()
+            if body:
+                try:
+                    body_json = json.loads(body.decode())
+                    logger.info(f"Request Body: {json.dumps(body_json, indent=2)}")
+                except:
+                    logger.info(f"Request Body (raw): {body.decode()[:500]}...")
+        except:
+            logger.info("Could not read request body")
 
-    logger.info(f"Response status: {response.status_code}")
+    response = await call_next(request)
+    process_time = time.time() - start_time
+
+    # Log response details
+    logger.info(f"=== RESPONSE ===")
+    logger.info(f"Status Code: {response.status_code}")
+    logger.info(f"Process Time: {process_time:.4f}s")
+    logger.info(f"Response Headers: {dict(response.headers)}")
+
+    # For JSON responses, intercept and log the body
+    if (response.headers.get("content-type", "").startswith("application/json") or
+        isinstance(response, JSONResponse)):
+
+        # Read response body
+        response_body = b""
+        async for chunk in response.body_iterator:
+            response_body += chunk
+
+        try:
+            response_text = response_body.decode()
+            response_json = json.loads(response_text)
+            logger.info(f"Response Body: {json.dumps(response_json, indent=2)}")
+        except Exception as e:
+            logger.info(f"Response Body (raw): {response_body.decode()[:500]}...")
+
+        # Create new response with the same content
+        from starlette.responses import Response as StarletteResponse
+        response = StarletteResponse(
+            content=response_body,
+            status_code=response.status_code,
+            headers=dict(response.headers),
+            media_type=response.media_type
+        )
+
     logger.info(f"=== REQUEST COMPLETED ===")
 
     return response
@@ -103,6 +162,19 @@ class ProcessVideoResponse(BaseModel):
     video_file_path: str = None
     segments_info: dict = None
     processing_details: dict = None
+    error: str = None
+
+class MinimaxRequest(BaseModel):
+    prompt: str
+    model: str = "abab6.5s-chat"
+    temperature: float = 0.7
+    max_tokens: int = 1000
+    top_p: float = 0.95
+
+class MinimaxResponse(BaseModel):
+    success: bool
+    data: dict = None
+    usage: dict = None
     error: str = None
 
 @app.get("/")
@@ -483,6 +555,207 @@ async def test_download_endpoint(request: DirectProcessVideoRequest):
             "error": str(e)
         }
 
+@app.post("/minimax/chat", response_model=MinimaxResponse)
+async def minimax_chat_completion(request: MinimaxRequest):
+    """
+    Fake Minimax API endpoint for chat completions.
+    
+    This is a mock implementation that simulates the Minimax API behavior.
+    In a real implementation, this would make actual API calls to Minimax services.
+    """
+    logger.info(f"=== MINIMAX API CALL ===")
+    logger.info(f"Model: {request.model}")
+    logger.info(f"Prompt: {request.prompt[:100]}...")
+    logger.info(f"Temperature: {request.temperature}")
+    logger.info(f"Max tokens: {request.max_tokens}")
+    
+    try:
+        # Simulate API processing time
+        await asyncio.sleep(random.uniform(0.5, 2.0))
+        
+        # Generate fake response based on prompt content
+        fake_responses = {
+            "video": "Based on the video content analysis, I can see this contains engaging moments with high viral potential. The key segments show strong emotional hooks and clear narrative structure.",
+            "script": "Here's an optimized viral script: Hook: 'You won't believe what happens next!' Body: Build tension with quick cuts and dramatic pauses. Call-to-action: 'Follow for more amazing content!'",
+            "analyze": "Analysis complete: Engagement score: 8.5/10. Viral potential: High. Key factors: Strong opening hook, emotional peaks at 15s and 45s, clear narrative arc.",
+            "generate": "Generated content successfully. The output includes optimized timing, engaging transitions, and platform-specific formatting for maximum reach.",
+            "default": "I understand your request. Here's a comprehensive response addressing your needs with actionable insights and recommendations."
+        }
+        
+        # Select response based on prompt keywords
+        response_text = fake_responses["default"]
+        for keyword, response in fake_responses.items():
+            if keyword.lower() in request.prompt.lower():
+                response_text = response
+                break
+        
+        # Simulate token usage
+        prompt_tokens = len(request.prompt.split()) * 1.3  # Rough token estimation
+        completion_tokens = len(response_text.split()) * 1.3
+        total_tokens = prompt_tokens + completion_tokens
+        
+        # Create fake Minimax-style response
+        fake_response = {
+            "id": f"minimax_{int(time.time())}_{random.randint(1000, 9999)}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": request.model,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": response_text
+                    },
+                    "finish_reason": "stop"
+                }
+            ],
+            "usage": {
+                "prompt_tokens": int(prompt_tokens),
+                "completion_tokens": int(completion_tokens),
+                "total_tokens": int(total_tokens)
+            }
+        }
+        
+        logger.info(f"Minimax API response generated successfully")
+        logger.info(f"Total tokens used: {int(total_tokens)}")
+        
+        return MinimaxResponse(
+            success=True,
+            data=fake_response,
+            usage=fake_response["usage"]
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in Minimax API endpoint: {str(e)}")
+        return MinimaxResponse(
+            success=False,
+            error=f"Minimax API error: {str(e)}"
+        )
+
+@app.post("/minimax/video-analysis")
+async def minimax_video_analysis(video_data: dict):
+    """
+    Fake Minimax API endpoint for video analysis.
+    
+    This endpoint simulates video content analysis capabilities that Minimax might offer.
+    """
+    import asyncio
+    import random
+    import time
+    
+    logger.info(f"=== MINIMAX VIDEO ANALYSIS ===")
+    logger.info(f"Video analysis request received")
+    
+    try:
+        # Simulate processing time for video analysis
+        await asyncio.sleep(random.uniform(1.0, 3.0))
+        
+        # Generate fake video analysis results
+        fake_analysis = {
+            "video_id": f"minimax_vid_{int(time.time())}",
+            "analysis_timestamp": int(time.time()),
+            "content_analysis": {
+                "engagement_score": round(random.uniform(6.0, 9.5), 1),
+                "viral_potential": random.choice(["High", "Medium", "Low"]),
+                "emotion_detection": {
+                    "dominant_emotions": random.sample(["excitement", "joy", "surprise", "curiosity", "inspiration"], 3),
+                    "emotional_intensity": round(random.uniform(0.6, 0.95), 2)
+                },
+                "content_categories": random.sample(["entertainment", "educational", "lifestyle", "tech", "comedy"], 2),
+                "key_moments": [
+                    {
+                        "timestamp": round(random.uniform(5, 15), 1),
+                        "type": "hook",
+                        "description": "Strong opening that captures attention",
+                        "engagement_score": round(random.uniform(7.0, 9.0), 1)
+                    },
+                    {
+                        "timestamp": round(random.uniform(20, 35), 1),
+                        "type": "peak",
+                        "description": "Emotional peak with high engagement potential",
+                        "engagement_score": round(random.uniform(8.0, 9.5), 1)
+                    },
+                    {
+                        "timestamp": round(random.uniform(45, 60), 1),
+                        "type": "call_to_action",
+                        "description": "Natural point for viewer action",
+                        "engagement_score": round(random.uniform(6.5, 8.5), 1)
+                    }
+                ]
+            },
+            "optimization_suggestions": [
+                "Consider trimming the opening to 3 seconds for better retention",
+                "Add text overlay during the emotional peak moment",
+                "Include trending audio for increased discoverability",
+                "Optimize for vertical format (9:16 aspect ratio)"
+            ],
+            "processing_details": {
+                "analysis_duration_seconds": round(random.uniform(1.5, 4.0), 2),
+                "confidence_score": round(random.uniform(0.85, 0.98), 2),
+                "model_version": "minimax-video-v2.1"
+            }
+        }
+        
+        logger.info(f"Video analysis completed successfully")
+        logger.info(f"Engagement score: {fake_analysis['content_analysis']['engagement_score']}")
+        
+        return {
+            "success": True,
+            "analysis": fake_analysis,
+            "message": "Video analysis completed successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in Minimax video analysis: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Video analysis failed: {str(e)}"
+        }
+
+@app.get("/minimax/models")
+async def minimax_list_models():
+    """
+    Fake Minimax API endpoint to list available models.
+    """
+    logger.info("Minimax models list requested")
+    
+    fake_models = {
+        "data": [
+            {
+                "id": "abab6.5s-chat",
+                "object": "model",
+                "created": 1677610602,
+                "owned_by": "minimax",
+                "description": "Advanced conversational AI model optimized for chat applications"
+            },
+            {
+                "id": "abab6.5g-chat",
+                "object": "model", 
+                "created": 1677610602,
+                "owned_by": "minimax",
+                "description": "General purpose chat model with balanced performance"
+            },
+            {
+                "id": "minimax-video-v2",
+                "object": "model",
+                "created": 1677610602,
+                "owned_by": "minimax",
+                "description": "Video content analysis and processing model"
+            },
+            {
+                "id": "minimax-text-embedding",
+                "object": "model",
+                "created": 1677610602,
+                "owned_by": "minimax",
+                "description": "Text embedding model for semantic similarity"
+            }
+        ],
+        "object": "list"
+    }
+    
+    return fake_models
+
 @app.on_event("startup")
 async def startup_event():
     logger.info("=== VIDEOTOSHORTS BACKEND STARTING UP ===")
@@ -490,6 +763,10 @@ async def startup_event():
     logger.info(f"Environment variables:")
     logger.info(f"  GEMINI_API_KEY: {'Set' if os.getenv('GEMINI_API_KEY') else 'Not set'}")
     logger.info(f"  APIFY_TOKEN: {'Set' if os.getenv('APIFY_TOKEN') else 'Not set'}")
+    logger.info("=== Fake Minimax API endpoints available ===")
+    logger.info("  POST /minimax/chat - Chat completions")
+    logger.info("  POST /minimax/video-analysis - Video content analysis") 
+    logger.info("  GET /minimax/models - List available models")
     logger.info("=== STARTUP COMPLETE ===")
 
 if __name__ == "__main__":
