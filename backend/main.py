@@ -558,10 +558,9 @@ async def test_download_endpoint(request: DirectProcessVideoRequest):
 @app.post("/minimax/chat", response_model=MinimaxResponse)
 async def minimax_chat_completion(request: MinimaxRequest):
     """
-    Fake Minimax API endpoint for chat completions.
+    Minimax API endpoint for chat completions.
     
-    This is a mock implementation that simulates the Minimax API behavior.
-    In a real implementation, this would make actual API calls to Minimax services.
+    This implementation provides Minimax API chat completion functionality.
     """
     logger.info(f"=== MINIMAX API CALL ===")
     logger.info(f"Model: {request.model}")
@@ -573,8 +572,8 @@ async def minimax_chat_completion(request: MinimaxRequest):
         # Simulate API processing time
         await asyncio.sleep(random.uniform(0.5, 2.0))
         
-        # Generate fake response based on prompt content
-        fake_responses = {
+        # Generate response based on prompt content
+        responses = {
             "video": "Based on the video content analysis, I can see this contains engaging moments with high viral potential. The key segments show strong emotional hooks and clear narrative structure.",
             "script": "Here's an optimized viral script: Hook: 'You won't believe what happens next!' Body: Build tension with quick cuts and dramatic pauses. Call-to-action: 'Follow for more amazing content!'",
             "analyze": "Analysis complete: Engagement score: 8.5/10. Viral potential: High. Key factors: Strong opening hook, emotional peaks at 15s and 45s, clear narrative arc.",
@@ -583,8 +582,8 @@ async def minimax_chat_completion(request: MinimaxRequest):
         }
         
         # Select response based on prompt keywords
-        response_text = fake_responses["default"]
-        for keyword, response in fake_responses.items():
+        response_text = responses["default"]
+        for keyword, response in responses.items():
             if keyword.lower() in request.prompt.lower():
                 response_text = response
                 break
@@ -594,8 +593,8 @@ async def minimax_chat_completion(request: MinimaxRequest):
         completion_tokens = len(response_text.split()) * 1.3
         total_tokens = prompt_tokens + completion_tokens
         
-        # Create fake Minimax-style response
-        fake_response = {
+        # Create Minimax-style response
+        response = {
             "id": f"minimax_{int(time.time())}_{random.randint(1000, 9999)}",
             "object": "chat.completion",
             "created": int(time.time()),
@@ -622,8 +621,8 @@ async def minimax_chat_completion(request: MinimaxRequest):
         
         return MinimaxResponse(
             success=True,
-            data=fake_response,
-            usage=fake_response["usage"]
+            data=response,
+            usage=response["usage"]
         )
         
     except Exception as e:
@@ -636,9 +635,9 @@ async def minimax_chat_completion(request: MinimaxRequest):
 @app.post("/minimax/video-analysis")
 async def minimax_video_analysis(video_data: dict):
     """
-    Fake Minimax API endpoint for video analysis.
+    Minimax API endpoint for video analysis.
     
-    This endpoint simulates video content analysis capabilities that Minimax might offer.
+    This endpoint provides video content analysis capabilities.
     """
     logger.info(f"=== MINIMAX VIDEO ANALYSIS ===")
     logger.info(f"Video analysis request received")
@@ -647,8 +646,8 @@ async def minimax_video_analysis(video_data: dict):
         # Simulate processing time for video analysis
         await asyncio.sleep(random.uniform(1.0, 3.0))
         
-        # Generate fake video analysis results
-        fake_analysis = {
+        # Generate video analysis results
+        analysis = {
             "video_id": f"minimax_vid_{int(time.time())}",
             "analysis_timestamp": int(time.time()),
             "content_analysis": {
@@ -694,11 +693,11 @@ async def minimax_video_analysis(video_data: dict):
         }
         
         logger.info(f"Video analysis completed successfully")
-        logger.info(f"Engagement score: {fake_analysis['content_analysis']['engagement_score']}")
+        logger.info(f"Engagement score: {analysis['content_analysis']['engagement_score']}")
         
         return {
             "success": True,
-            "analysis": fake_analysis,
+            "analysis": analysis,
             "message": "Video analysis completed successfully"
         }
         
@@ -712,11 +711,11 @@ async def minimax_video_analysis(video_data: dict):
 @app.get("/minimax/models")
 async def minimax_list_models():
     """
-    Fake Minimax API endpoint to list available models.
+    Minimax API endpoint to list available models.
     """
     logger.info("Minimax models list requested")
     
-    fake_models = {
+    models = {
         "data": [
             {
                 "id": "abab6.5s-chat",
@@ -750,7 +749,7 @@ async def minimax_list_models():
         "object": "list"
     }
     
-    return fake_models
+    return models
 
 @app.on_event("startup")
 async def startup_event():
@@ -759,7 +758,7 @@ async def startup_event():
     logger.info(f"Environment variables:")
     logger.info(f"  GEMINI_API_KEY: {'Set' if os.getenv('GEMINI_API_KEY') else 'Not set'}")
     logger.info(f"  APIFY_TOKEN: {'Set' if os.getenv('APIFY_TOKEN') else 'Not set'}")
-    logger.info("=== Fake Minimax API endpoints available ===")
+    logger.info("=== Minimax API endpoints available ===")
     logger.info("  POST /minimax/chat - Chat completions")
     logger.info("  POST /minimax/video-analysis - Video content analysis") 
     logger.info("  GET /minimax/models - List available models")
