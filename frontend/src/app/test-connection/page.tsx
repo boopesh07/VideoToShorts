@@ -5,7 +5,7 @@ import { apiClient } from '@/lib/api';
 
 export default function TestConnectionPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
 
   const testConnection = async () => {
@@ -70,7 +70,7 @@ export default function TestConnectionPage() {
           </div>
         )}
 
-        {status === 'success' && result && (
+        {status === 'success' && result !== null && (
           <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-md">
             <h3 className="text-lg font-medium text-green-800 mb-2">Success!</h3>
             <pre className="text-sm text-green-700 bg-green-100 p-2 rounded overflow-auto">
