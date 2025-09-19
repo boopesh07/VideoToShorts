@@ -91,6 +91,7 @@ async def get_viral_videos(request: VideoRequest):
                 url=video.get("webVideoUrl", ""),
                 views=video.get("playCount", 0),
                 video_url = video.get("webVideoUrl", "")
+                comment_count = video.get("commentCount", 0)
             )
             for video in top_videos
         ]
