@@ -4,3 +4,4 @@ python-multipart
 apify-client
 python-dotenv
 yt-dlp
+google-generativeai

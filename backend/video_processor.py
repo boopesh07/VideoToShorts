@@ -102,6 +102,7 @@ class VideoProcessor:
                 '-i', video_path,
                 '-ss', str(start_time),
                 '-t', str(duration),
+                '-vf', 'crop=ih*9/16:ih',
                 '-c:v', 'libx264',  # video codec
                 '-c:a', 'aac',      # audio codec
                 '-avoid_negative_ts', 'make_zero',
