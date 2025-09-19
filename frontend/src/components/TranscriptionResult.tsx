@@ -6,11 +6,13 @@ import { GladiaTranscriptionResult } from "@/lib/gladia";
 interface TranscriptionResultProps {
 	result: GladiaTranscriptionResult;
 	onReset?: () => void;
+	onExtractViralSegment?: () => void;
 }
 
 export default function TranscriptionResult({
 	result,
 	onReset,
+	onExtractViralSegment,
 }: TranscriptionResultProps) {
 	const [activeTab, setActiveTab] = useState<
 		"transcript" | "summary" | "chapters" | "entities" | "sentiment"
@@ -120,6 +122,14 @@ export default function TranscriptionResult({
 						)}
 					</div>
 					<div className="flex space-x-3">
+						{onExtractViralSegment && (
+							<button
+								onClick={onExtractViralSegment}
+								className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-2 text-sm font-medium text-white transition-all duration-200 hover:from-purple-700 hover:to-pink-700 hover:scale-105 shadow-lg"
+							>
+								🎯 Find Viral Moment
+							</button>
+						)}
 						<button
 							onClick={downloadTranscript}
 							className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-red-700 hover:scale-105 shadow-lg"

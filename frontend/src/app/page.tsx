@@ -5,21 +5,51 @@ import FileUpload from "@/components/FileUpload";
 import UrlInput from "@/components/UrlInput";
 import ProgressIndicator from "@/components/ProgressIndicator";
 import TranscriptionResult from "@/components/TranscriptionResult";
+import ViralSegmentPlayer from "@/components/ViralSegmentPlayer";
+import TestVideoProcessor from "@/components/TestVideoProcessor";
 import { GladiaTranscriptionResult } from "@/lib/gladia";
+import { extractViralSegment, ViralSegmentResponse } from "@/lib/videoProcessing";
 
 type TranscriptionState =
 	| { status: "idle" }
 	| { status: "processing"; progress?: number; message?: string }
 	| { status: "completed"; result: GladiaTranscriptionResult }
+	| { status: "extracting_segment"; progress?: number; message?: string }
+	| { status: "segment_ready"; result: GladiaTranscriptionResult; segmentData: ViralSegmentResponse }
+	| { status: "video_processor" }
 	| { status: "error"; error: string };
 
 export default function Home() {
 	const [transcriptionState, setTranscriptionState] =
 		useState<TranscriptionState>({ status: "idle" });
-	const [inputMode, setInputMode] = useState<"file" | "url">("file");
+	const [inputMode, setInputMode] = useState<"file" | "url" | "processor">("file");
 
 	const resetState = () => {
 		setTranscriptionState({ status: "idle" });
+	};
+
+	const handleExtractViralSegment = async (transcriptionResult: GladiaTranscriptionResult) => {
+		setTranscriptionState({
+			status: "extracting_segment",
+			result: transcriptionResult,
+			message: "🔍 AI is finding your viral moment...",
+		});
+
+		try {
+			const segmentData = await extractViralSegment(transcriptionResult, 30);
+
+			setTranscriptionState({
+				status: "segment_ready",
+				result: transcriptionResult,
+				segmentData: segmentData,
+			});
+		} catch (error) {
+			console.error("Segment extraction error:", error);
+			setTranscriptionState({
+				status: "error",
+				error: error instanceof Error ? error.message : "Failed to extract viral segment",
+			});
+		}
 	};
 
 	const handleFileSelect = async (file: File) => {
@@ -126,10 +156,10 @@ export default function Home() {
 						{/* Hero Section */}
 						<div className="text-center space-y-4">
 							<h1 className="text-4xl font-bold tracking-tight text-zinc-100 sm:text-5xl">
-								AI Video Transcription
+								VideoToShorts AI
 							</h1>
 							<p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-								Upload videos or audio files to get accurate AI transcriptions with speaker identification and timestamps
+								Upload videos to get transcriptions and find viral 30-second segments with AI
 							</p>
 						</div>
 
@@ -139,7 +169,7 @@ export default function Home() {
 								<div className="flex space-x-1">
 									<button
 										onClick={() => setInputMode("file")}
-										className={`px-6 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+										className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
 											inputMode === "file"
 												? "bg-red-600 text-white shadow-lg"
 												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
@@ -149,13 +179,23 @@ export default function Home() {
 									</button>
 									<button
 										onClick={() => setInputMode("url")}
-										className={`px-6 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+										className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
 											inputMode === "url"
 												? "bg-red-600 text-white shadow-lg"
 												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
 										}`}
 									>
 										From URL
+									</button>
+									<button
+										onClick={() => setInputMode("processor")}
+										className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+											inputMode === "processor"
+												? "bg-red-600 text-white shadow-lg"
+												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
+										}`}
+									>
+										🎬 Video Processor
 									</button>
 								</div>
 							</div>
@@ -169,14 +209,16 @@ export default function Home() {
 									accept="audio/*,video/*"
 									maxSizeMB={100}
 								/>
-							) : (
+							) : inputMode === "url" ? (
 								<UrlInput onUrlSubmit={handleUrlSubmit} />
+							) : (
+								<TestVideoProcessor />
 							)}
 						</div>
 					</div>
 				)}
 
-				{transcriptionState.status === "processing" && (
+				{(transcriptionState.status === "processing" || transcriptionState.status === "extracting_segment") && (
 					<ProgressIndicator
 						status="processing"
 						progress={transcriptionState.progress}
@@ -205,7 +247,30 @@ export default function Home() {
 					<TranscriptionResult
 						result={transcriptionState.result}
 						onReset={resetState}
+						onExtractViralSegment={() => handleExtractViralSegment(transcriptionState.result)}
 					/>
+				)}
+
+				{transcriptionState.status === "segment_ready" && (
+					<div className="space-y-6">
+						<ViralSegmentPlayer
+							segmentData={transcriptionState.segmentData}
+							onPlayAgain={resetState}
+						/>
+
+						{/* Option to view full transcription */}
+						<div className="text-center">
+							<button
+								onClick={() => setTranscriptionState({
+									status: "completed",
+									result: transcriptionState.result
+								})}
+								className="inline-flex items-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition-all duration-200 hover:bg-zinc-600 hover:text-white"
+							>
+								📄 View Full Transcription
+							</button>
+						</div>
+					</div>
 				)}
 			</main>
 		</div>
