@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import FileUpload from "@/components/FileUpload";
-import UrlInput from "@/components/UrlInput";
 import ProgressIndicator from "@/components/ProgressIndicator";
-import TranscriptionResult from "@/components/TranscriptionResult";
-import ViralSegmentPlayer from "@/components/ViralSegmentPlayer";
 import TestVideoProcessor from "@/components/TestVideoProcessor";
+import TranscriptionResult from "@/components/TranscriptionResult";
+import UrlInput from "@/components/UrlInput";
+import ViralSegmentPlayer from "@/components/ViralSegmentPlayer";
 import { GladiaTranscriptionResult } from "@/lib/gladia";
 import { extractViralSegment, ViralSegmentResponse } from "@/lib/videoProcessing";
+import { useState } from "react";
 
 type TranscriptionState =
 	| { status: "idle" }
@@ -169,31 +169,28 @@ export default function Home() {
 								<div className="flex space-x-1">
 									<button
 										onClick={() => setInputMode("file")}
-										className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-											inputMode === "file"
-												? "bg-red-600 text-white shadow-lg"
-												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
-										}`}
+										className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${inputMode === "file"
+											? "bg-red-600 text-white shadow-lg"
+											: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
+											}`}
 									>
 										Upload File
 									</button>
 									<button
 										onClick={() => setInputMode("url")}
-										className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-											inputMode === "url"
-												? "bg-red-600 text-white shadow-lg"
-												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
-										}`}
+										className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${inputMode === "url"
+											? "bg-red-600 text-white shadow-lg"
+											: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
+											}`}
 									>
 										From URL
 									</button>
 									<button
 										onClick={() => setInputMode("processor")}
-										className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-											inputMode === "processor"
-												? "bg-red-600 text-white shadow-lg"
-												: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
-										}`}
+										className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${inputMode === "processor"
+											? "bg-red-600 text-white shadow-lg"
+											: "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/50"
+											}`}
 									>
 										🎬 Video Processor
 									</button>
