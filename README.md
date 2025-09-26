@@ -2,6 +2,13 @@
 
 An intelligent video creation assistant that transforms long-form videos into optimized, trend-driven short-form content using AI-powered analysis and automation.
 
+# 🏆 MiniMax Hackathon Winner  
+
+This project was awarded **Winner of the MiniMax Hackathon**!  
+
+🔗 Check out more winning hackathon projects here:  
+[MiniMax Hackathon Winners](https://github.com/MiniMax-AI/MiniMax-Hackathon)
+
 ## Overview
 
 VideoToShorts streamlines the video creation workflow by automatically analyzing trending content, generating optimized scripts, and assembling new videos from existing footage. The platform leverages AI to help content creators produce engaging videos with greater efficiency and data-driven confidence.
